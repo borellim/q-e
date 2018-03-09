@@ -1135,6 +1135,7 @@ move_ions.o : ../../UtilXlib/mp.o
 move_ions.o : atomic_wfc_mod.o
 move_ions.o : dynamics_module.o
 move_ions.o : fcp.o
+move_ions.o : mod_sirius.o
 move_ions.o : newd.o
 move_ions.o : pwcom.o
 move_ions.o : scf_mod.o
@@ -1752,16 +1753,19 @@ run_driver.o : ../../Modules/mp_global.o
 run_driver.o : ../../Modules/parameters.o
 run_driver.o : pwcom.o
 run_driver.o : update_pot.o
+run_pwscf.o : ../../FFTXlib/fft_types.o
 run_pwscf.o : ../../Modules/cell_base.o
 run_pwscf.o : ../../Modules/check_stop.o
 run_pwscf.o : ../../Modules/command_line_options.o
 run_pwscf.o : ../../Modules/control_flags.o
 run_pwscf.o : ../../Modules/fft_base.o
 run_pwscf.o : ../../Modules/io_global.o
+run_pwscf.o : ../../Modules/mp_bands.o
 run_pwscf.o : ../../Modules/mp_images.o
 run_pwscf.o : ../../Modules/parameters.o
 run_pwscf.o : ../../Modules/qexsd.o
 run_pwscf.o : ../../Modules/qmmm.o
+run_pwscf.o : ../../Modules/recvec.o
 run_pwscf.o : mod_sirius.o
 run_pwscf.o : pwcom.o
 run_pwscf.o : scf_mod.o
@@ -1890,6 +1894,7 @@ setup.o : bp_mod.o
 setup.o : extfield.o
 setup.o : exx.o
 setup.o : ldaU.o
+setup.o : mod_sirius.o
 setup.o : pw_restart.o
 setup.o : pw_restart_new.o
 setup.o : pwcom.o

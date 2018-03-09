@@ -5,15 +5,21 @@ implicit none
 
 logical :: use_sirius_radial_integration_beta = .true.
 logical :: use_sirius_beta_projectors         = .true.
-logical :: use_sirius_q_operator              = .true.
+logical :: use_sirius_q_operator              = .false.
 logical :: use_sirius_ks_solver               = .true.
 logical :: use_sirius_density                 = .true.
 logical :: use_sirius_density_matrix          = .true.
+! initialize G-vectors once or at eeach step of ionic relaxation
+logical :: init_gvec_once                     = .false.
 
 ! inverse of the reciprocal lattice vectors matrix
 real(8) bg_inv(3,3)
 ! id of the k-point set for ground state calculations
 integer kset_id
+! total number of k-points
+integer num_kpoints
+real(8), allocatable :: kpoints(:,:)
+real(8), allocatable :: wkpoints(:)
 
 type atom_type_t
   ! atom label
@@ -102,7 +108,7 @@ use gvect, only : ngm_g, ecutrho, ngm, mill
 use gvecw, only : ecutwfc
 use control_flags, only : gamma_only
 use mp_pools, only : inter_pool_comm, npool
-use mp_images,        only : nproc_image
+use mp_images,        only : nproc_image, intra_image_comm
 use mp, only : mp_sum, mp_bcast
 use wvfct, only : nbnd
 use parallel_include
@@ -139,7 +145,7 @@ do iat = 1, nsp
 enddo
 
 ! create context of simulation
-call sirius_create_simulation_context(c_str(trim(adjustl(sirius_cfg))), c_str("pseudopotential"))
+call sirius_create_simulation_context(c_str(trim(adjustl(sirius_cfg))), c_str("pseudopotential"), intra_image_comm)
 
 ! set number of first-variational states
 call sirius_set_num_bands(nbnd)
@@ -351,6 +357,12 @@ call sirius_create_potential
 !!== kmesh(:) = (/nk1, nk2, nk3/)
 !!== kshift(:) = (/k1, k2, k3/)
 !!== call sirius_create_irreducible_kset(kmesh, kshift, i, kset_id)
+
+if (.true.) then
+  do i = 1, num_kpoints
+    write(*,*)'ik=',i,' kpoint=',matmul(bg_inv,kpoints(:,i))
+  enddo
+endif
 
 allocate(wk_tmp(nkstot))
 allocate(xk_tmp(3, nkstot))
@@ -874,12 +886,13 @@ use buffers, only : save_buffer
 use io_files, only : iunwfc, nwordwfc
 use bp, only : lelfield
 use noncollin_module, only : npol
-use wvfct, only : npwx
+use wvfct, only : npwx, nbnd
 use wavefunctions_module, only : evc
 implicit none
 integer, external :: global_kpoint_index
 integer, allocatable :: gvl(:,:)
-integer ig, ik, ik_
+integer ig, ik, ik_, i, j
+complex(8) z1
 
 allocate(gvl(3, npwx))
 do ik = 1, nks
@@ -889,6 +902,19 @@ do ik = 1, nks
   !
   ik_ = global_kpoint_index(nkstot, ik)
   call sirius_get_wave_functions(kset_id, ik_, ngk(ik), gvl(1, 1), evc(1, 1), npwx * npol) 
+  !write(*,*)'checking wfs for k-point ', ik_
+  !do i = 1, nbnd
+  !  do j = 1, nbnd
+  !    z1 = 0.d0
+  !    do ig = 1, ngk(ik)
+  !      z1 = z1 + conjg(evc(ig, i)) * evc(ig, j)
+  !    enddo
+  !    if (i.eq.j) z1 = z1 - 1.d0
+  !    if (abs(z1).gt.1e-10) then
+  !      write(*,*)'not orthogonal ',i,j,' diff: ',z1
+  !    endif
+  !  enddo
+  !enddo
   !
   IF ( nks > 1 .OR. lelfield ) &
     CALL save_buffer ( evc, nwordwfc, iunwfc, ik )
